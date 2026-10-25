@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Carrega só as credenciais RUNRUNIT_* do .env do Hermes (sem imprimir) e chama a CLI.
+ENV_FILE="${RUNRUNIT_ENV_FILE:-$HOME/.hermes/profiles/profissional/.env}"
+if [[ -z "$RUNRUNIT_APP_KEY" || -z "$RUNRUNIT_USER_TOKEN" ]] && [[ -f "$ENV_FILE" ]]; then
+  while IFS='=' read -r k v; do
+    v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"
+    export "$k=$v"
+  done < <(grep -E '^(export )?RUNRUNIT_[A-Z_]+=' "$ENV_FILE" | sed 's/^export //')
+fi
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+exec python3 "$SCRIPT_DIR/rr_cli.py" "$@"
