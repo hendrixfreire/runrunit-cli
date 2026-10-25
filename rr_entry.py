@@ -101,7 +101,7 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     load_config()
     if argv and argv[0] == 'configurar': return configure(argv[1:])
-    if '--version' in argv:
+    if argv == ['--version']:
         from importlib.metadata import version, PackageNotFoundError
         try: value = version('runrunit-cli')
         except PackageNotFoundError: value = '0.2.0 (código-fonte)'

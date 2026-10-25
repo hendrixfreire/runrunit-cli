@@ -7,7 +7,7 @@ Os comandos operacionais da API aceitam `--json`; `configurar` e `--version` sã
 ## Consultas e rotina
 
 ```bash
-rr minhas --usuario hendrix-freire
+rr minhas --usuario ID
 rr buscar "Customer 360"
 rr hoje
 rr atrasadas
@@ -24,6 +24,8 @@ rr abrir 341660
 ```
 
 `dependencias` retorna pré-requisitos e dependentes separadamente. `abrir` consulta a tarefa e abre sua URL no navegador padrão. `hoje` considera o dia do prazo, e `atrasadas` os dias anteriores, não o horário vencido dentro do dia atual. `resumo` mantém projetos distintos pelo ID, mesmo com nomes iguais. Todos esses filtros e totais são sobre suas tarefas abertas atribuídas, dentro dos limites de paginação e permissões da API.
+
+A identidade dessas consultas segue a precedência `--usuario ID`, `RUNRUNIT_USER_ID` e, na ausência dos dois, o dono do User-Token resolvido por `GET /users?me_first=true&limit=1`. Não há usuário padrão embutido. Se a identidade não puder ser resolvida, a CLI pede configuração explícita. `--help` e comandos que não dependem de identidade não consultam usuários.
 
 Coleções e consultas de rotina aceitam `--max-pages N --max-items N`. JSON inclui `truncated`; em dependências, esse indicador é verdadeiro se qualquer uma das duas coleções estiver parcial.
 
@@ -59,7 +61,7 @@ rr pausar 341660 --dry-run
 rr comentar 341660 "Texto do comentário" --dry-run
 ```
 
-Título e descrição podem ser editados juntos, mas não são atômicos: a primeira alteração pode concluir e a segunda falhar. Descrição usa recurso `/description`, separado da tarefa, e é enviada como HTML literal, sem converter Markdown. `--descricao-arquivo` lê UTF-8. Datas exigem `YYYY-MM-DD` válido. Limpar prazo envia `null`.
+Título e descrição podem ser editados juntos, mas não são atômicos: a primeira alteração pode concluir e a segunda falhar. Descrição usa recurso `/description`, separado da tarefa, e é enviada como HTML literal, sem converter Markdown. `--descricao-arquivo` lê UTF-8. Datas exigem `YYYY-MM-DD` válido. Limpar prazo envia `null`. Na criação com `--descricao`, a CLI relê `/tasks/:id/description` antes de confirmar; descrição ausente ou divergente exige reconciliação e não gera um segundo POST.
 
 ## Responsáveis e tags
 

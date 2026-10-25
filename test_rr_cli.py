@@ -22,7 +22,7 @@ class CliTests(unittest.TestCase):
     def test_only_active_assignments_and_title_search(self):
         tasks = [{"title": "C360", "assignments": [{"assignee_id": "hendrix-freire", "is_closed": closed}]} for closed in (True, False)]
         with patch.object(api, "paginate", return_value={"body": tasks, "truncated": True}), patch.object(cli, "output") as out:
-            cli.main(["buscar", "c360"])
+            cli.main(["buscar", "c360", "--usuario", "hendrix-freire"])
         result = out.call_args.args[0]
         self.assertEqual(len(result["body"]), 1)
         self.assertTrue(result["truncated"])

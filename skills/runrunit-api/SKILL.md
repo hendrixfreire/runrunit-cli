@@ -13,7 +13,7 @@ Verifique `rr --version` e `rr --help`. Se não estiver disponível, siga a seç
 
 O usuário configura a própria conta em um terminal com `rr configurar`. O assistente solicita as credenciais sem exibi-las e identifica o usuário pela API. Não solicite tokens na conversa nem leia, imprima ou copie arquivos de credenciais.
 
-A CLI respeita as variáveis `RUNRUNIT_APP_KEY`, `RUNRUNIT_USER_TOKEN` e `RUNRUNIT_USER_ID`. O arquivo padrão é `~/.config/runrunit-cli/env` no Linux/macOS ou `%APPDATA%\runrunit-cli\env` no Windows; `RUNRUNIT_ENV_FILE` seleciona outro arquivo. O fallback Hermes existe para configurações antigas, mas não é requisito. Esta CLI usa os dados de fuso horário da dependência `tzdata`, instalada com o pacote.
+A CLI respeita as variáveis `RUNRUNIT_APP_KEY`, `RUNRUNIT_USER_TOKEN` e `RUNRUNIT_USER_ID`. O arquivo padrão é `~/.config/runrunit-cli/env` no Linux/macOS ou `%APPDATA%\runrunit-cli\env` no Windows; `RUNRUNIT_ENV_FILE` seleciona outro arquivo. A configuração antiga do Hermes é lida apenas como origem alternativa de credenciais para instalações existentes; não é requisito. A identidade não tem valor padrão embutido: use `--usuario`, `RUNRUNIT_USER_ID` ou deixe a CLI resolver o dono do User-Token. Esta CLI usa os dados de fuso horário da dependência `tzdata`, instalada com o pacote.
 
 ## CLI no terminal e nos agentes
 
@@ -34,7 +34,7 @@ rr checklist 123456
 
 A CLI também cria, entrega, reabre, move, edita título/descrição/prazo, gerencia urgência, responsáveis, tags e itens de checklist, aponta horas e anexa arquivos. Leia [references/cli.md](references/cli.md) para sintaxe completa, confirmação, consultas de IDs e exemplos de todas as ações. `rr COMANDO --help` mostra os argumentos.
 
-- `minhas`, `buscar`, `hoje`, `atrasadas`, `trabalhando` e `resumo` consideram somente suas tarefas abertas com assignment ativo. `--usuario ID` muda o responsável (use o `RUNRUNIT_USER_ID` configurado; não dependa do fallback legado da CLI). `buscar` filtra o título localmente, sem distinguir maiúsculas; não é busca global.
+- `minhas`, `buscar`, `hoje`, `atrasadas`, `trabalhando` e `resumo` consideram somente suas tarefas abertas com assignment ativo. A identidade segue a precedência `--usuario ID`, `RUNRUNIT_USER_ID` e, na ausência dos dois, o dono do User-Token resolvido por `GET /users?me_first=true&limit=1`. Não há usuário padrão embutido. `buscar` filtra o título localmente, sem distinguir maiúsculas; não é busca global.
 - Datas de `hoje`/`atrasadas` e agrupamento de prazos usam `America/Sao_Paulo`. `trabalhando` verifica o contador do responsável selecionado.
 - Coleções: padrão `--max-pages 10 --max-items 1000`. `truncated: true` ou aviso no terminal significa resultado parcial, inclusive filtros/resumos. Nunca declare completude de resultado parcial.
 - `--json` nos comandos operacionais da API preserva dados e metadados para automação. A saída humana remove HTML e controles do terminal.
@@ -56,7 +56,7 @@ rr paginate "/tasks?assignee_id=USER_ID&is_closed=false&limit=100" --max-pages 3
 ## Identidade e minhas tarefas
 
 - Resolva o operador por `rr request GET "/users?me_first=true&limit=1"`: o primeiro item identifica o dono do User-Token. Não existe `/users/me`.
-- Use o ID retornado ou o `RUNRUNIT_USER_ID` configurado; nunca presuma um usuário de exemplo. Para outros responsáveis, resolva o ID com `rr usuarios`.
+- Use o ID retornado ou o `RUNRUNIT_USER_ID` configurado; se ambos faltarem, resolva o dono do User-Token e nunca presuma um usuário de exemplo. Para outros responsáveis, resolva o ID com `rr usuarios`.
 - Filtro: `GET /tasks?assignee_id=<USER_ID>&is_closed=false`. Filtre também `assignments[*]` por `assignee_id == <USER_ID>` e `is_closed == false`; a API pode devolver assignments encerrados.
 - Campos úteis: `id`, `title`, `client_name`, `project_name`, `board_stage_name`, `desired_date`, `is_urgent`.
 - Link: `https://runrun.it/pt-BR/tasks/<id>`.

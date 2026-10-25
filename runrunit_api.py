@@ -11,7 +11,7 @@ import sys
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 BASE_URL = "https://runrun.it/api/v1.0"
 SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -99,6 +99,51 @@ def decode_body(raw: bytes, content_type: str | None) -> Any:
     return text
 
 
+class RedirectBlockedError(Exception):
+    """An HTTP redirect was refused so credentials cannot reach another origin."""
+
+    def __init__(self, code: int, target: str) -> None:
+        super().__init__(f"HTTP {code} redirect to {target} blocked")
+        self.code = code
+        self.target = target
+
+
+def _reported_origin(url: str) -> str:
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        return "(relative)"
+    try:
+        port = f":{parsed.port}" if parsed.port else ""
+    except ValueError:
+        port = ""
+    return f"{parsed.scheme}://{parsed.hostname or ''}{port}"
+
+
+class NoRedirectHandler(HTTPRedirectHandler):
+    """Refuse every redirect instead of re-sending App-Key/User-Token.
+
+    urllib would otherwise follow 3xx responses, forward the authentication
+    headers to whatever origin (or plain HTTP URL) the Location names, and
+    turn a redirected POST into a GET. Pagination has its own allow-list in
+    next_link; transport-level redirects are never trusted.
+    """
+
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> Any:
+        close = getattr(fp, "close", None)
+        if callable(close):
+            close()
+        raise RedirectBlockedError(code, _reported_origin(newurl))
+
+
+def urlopen(request: Request, timeout: int = 30) -> Any:
+    """Redirect-safe replacement for the stdlib helper, kept as a module seam.
+
+    A 3xx must never trigger a second request carrying App-Key/User-Token.
+    """
+    opener = build_opener(NoRedirectHandler())
+    return opener.open(request, timeout=timeout)
+
+
 def call(method: str, path: str, data: Any = None, if_none_match: str | None = None, allow_not_found: bool = False) -> dict[str, Any]:
     app_key, user_token = credentials()
     path = normalize_path(path)
@@ -121,6 +166,10 @@ def call(method: str, path: str, data: Any = None, if_none_match: str | None = N
                 "headers": visible_headers(response.headers),
                 "body": decode_body(raw, response.headers.get("Content-Type")),
             }
+    except RedirectBlockedError as exc:
+        raise SystemExit(
+            f"Blocked HTTP redirect to {exc.target}; credentials were not re-sent."
+        ) from exc
     except HTTPError as exc:
         if exc.code == 404 and allow_not_found:
             return {"status": 404, "headers": visible_headers(exc.headers), "body": None}

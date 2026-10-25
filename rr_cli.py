@@ -27,6 +27,22 @@ def plain(value):
     return ''.join(c for c in text if c == '\n' or not unicodedata.category(c).startswith('C'))
 
 
+def literal(value):
+    """Preserve authorized payload text; only neutralize terminal controls."""
+    text = str(value if value is not None else '')
+    escaped = []
+    for char in text:
+        if char == '\n':
+            escaped.append(char)
+        elif unicodedata.category(char).startswith('C'):
+            code = ord(char)
+            escaped.append(f'\\x{code:02x}' if code < 0x100 else
+                           f'\\u{code:04x}' if code < 0x10000 else f'\\U{code:08x}')
+        else:
+            escaped.append(char)
+    return ''.join(escaped)
+
+
 def show_task(t, stream=None):
     stream = stream or sys.stdout
     for label, key in [('Tarefa', 'id'), ('Título', 'title'), ('Cliente', 'client_name'),
@@ -118,7 +134,7 @@ def parser():
             s.add_argument('--max-pages', type=int, default=10)
             s.add_argument('--max-items', type=int, default=1000)
         if name in LISTS:
-            s.add_argument('--usuario', default=os.environ.get('RUNRUNIT_USER_ID', 'hendrix-freire'))
+            s.add_argument('--usuario', help='Responsável; padrão: RUNRUNIT_USER_ID ou o dono do User-Token')
         if name == 'resumo':
             s.add_argument('--por', choices=['projeto', 'prazo', 'urgencia'], default='projeto')
         if name == 'buscar': s.add_argument('texto', type=nonempty)
@@ -173,10 +189,35 @@ def get(path):
     return api.call('GET', path)['body']
 
 
+def token_owner():
+    """Resolve the user that owns the configured User-Token; never guesses."""
+    try:
+        body = get('/users?me_first=true&limit=1')
+    except SystemExit:
+        raise SystemExit('Não foi possível identificar o dono do User-Token. '
+                         'Configure RUNRUNIT_USER_ID ou use --usuario ID.') from None
+    if not isinstance(body, list) or not body or not isinstance(body[0], dict) or not body[0].get('id'):
+        raise SystemExit('A API não retornou o usuário do token. '
+                         'Configure RUNRUNIT_USER_ID ou use --usuario ID.')
+    return api.safe_id(str(body[0]['id']))
+
+
+def resolve_user(usuario=None):
+    """Precedence: --usuario, RUNRUNIT_USER_ID, token owner (network only in the last case)."""
+    value = usuario if usuario is not None else os.environ.get('RUNRUNIT_USER_ID')
+    if value is not None and str(value).strip():
+        try:
+            return api.safe_id(str(value).strip())
+        except SystemExit:
+            raise SystemExit(f'Identificador de usuário inválido: {value!r}. '
+                             'Corrija --usuario ou RUNRUNIT_USER_ID.') from None
+    return token_owner()
+
+
 def confirm(args, task, plan):
     if task: show_task(task, sys.stderr)
     print('Operação: ' + args.command, file=sys.stderr)
-    print(plain(json.dumps(plan, ensure_ascii=False, indent=2)), file=sys.stderr)
+    print(literal(json.dumps(plan, ensure_ascii=False, indent=2)), file=sys.stderr)
     if args.dry_run: return False
     expected = getattr(args, 'id', 'CRIAR')
     if args.confirmar is not None:
@@ -211,18 +252,20 @@ def due_day(t):
 
 
 def list_tasks(args):
-    path = api.add_query('/tasks', [('assignee_id', args.usuario), ('is_closed', 'false'), ('limit', '100')])
+    usuario = resolve_user(args.usuario)
+    args.usuario = usuario
+    path = api.add_query('/tasks', [('assignee_id', usuario), ('is_closed', 'false'), ('limit', '100')])
     result = pages(path, args)
     tasks = [t for t in result['body'] if not t.get('is_closed') and any(
-        a.get('assignee_id') == args.usuario and a.get('is_closed') is False for a in t.get('assignments') or [])]
+        a.get('assignee_id') == usuario and a.get('is_closed') is False for a in t.get('assignments') or [])]
     today = datetime.now(TZ).date()
     if args.command == 'buscar': tasks = [t for t in tasks if args.texto.casefold() in str(t.get('title', '')).casefold()]
     if args.command == 'hoje': tasks = [t for t in tasks if due_day(t) == today]
     if args.command == 'atrasadas': tasks = [t for t in tasks if due_day(t) and due_day(t) < today]
-    if args.command == 'trabalhando': tasks = [t for t in tasks if any(a.get('assignee_id') == args.usuario and a.get('is_working_on') is True and not a.get('is_closed') for a in t.get('assignments') or [])]
+    if args.command == 'trabalhando': tasks = [t for t in tasks if any(a.get('assignee_id') == usuario and a.get('is_working_on') is True and not a.get('is_closed') for a in t.get('assignments') or [])]
     result['items_returned'] = len(tasks)
     result['body'] = tasks
-    result['scope'] = 'Tarefas abertas atribuídas a ' + args.usuario
+    result['scope'] = 'Tarefas abertas atribuídas a ' + usuario
     if args.command == 'resumo':
         def group(t):
             if args.por == 'projeto': return f"{t.get('project_id') or '-'} | {t.get('project_name') or 'Sem projeto'}"
@@ -307,7 +350,7 @@ def mutate_task(args, task):
         return checked(result, all(str(b.get(k)) == str(v) for k, v in record.items()))
     result = api.call('GET', verify_path); b = result['body']
     if cmd in ('iniciar', 'pausar'):
-        me = get('/users?me_first=true&limit=1')[0]['id']
+        me = token_owner()
         mine = [a for a in b.get('assignments') or [] if a.get('assignee_id') == me]
         return checked(result, bool(mine) and all(a.get('is_working_on') is (cmd == 'iniciar') for a in mine))
     if cmd == 'atribuir': return checked(result, any(a.get('assignee_id') == args.usuario for a in b.get('assignments') or []) is (not args.remover))
@@ -357,8 +400,18 @@ def create(args):
     plan = {'method': 'POST', 'path': '/tasks', 'data': {'task': body}}
     if not confirm(args, None, plan): return preview(plan)
     written = api.call('POST', '/tasks', plan['data'])
-    result = api.call('GET', '/tasks/' + api.safe_id(str(written['body']['id'])))
-    return checked(result, all(str(result['body'].get(k)) == str(v) for k, v in body.items() if k != 'description'))
+    task_id = api.safe_id(str(written['body']['id']))
+    result = api.call('GET', '/tasks/' + task_id)
+    expected = {k: v for k, v in body.items() if k != 'description'}
+    ok = all(str(result['body'].get(k)) == str(v) for k, v in expected.items())
+    if 'description' in body:
+        try:
+            result['description'] = description(task_id)
+        except SystemExit:
+            raise SystemExit(f'Tarefa {task_id} criada, mas a descrição não pôde ser confirmada. '
+                             'Reconcilie antes de repetir.') from None
+        ok = ok and result['description'] == body['description']
+    return checked(result, ok)
 
 
 def checklist(args, task):

@@ -23,6 +23,8 @@ rr abrir 123456
 
 `dependencias` retorna pré-requisitos e dependentes separadamente. `abrir` consulta a tarefa e abre sua URL no navegador padrão. `hoje` considera o dia do prazo, e `atrasadas` os dias anteriores, não o horário vencido dentro do dia atual. `resumo` mantém projetos distintos pelo ID, mesmo com nomes iguais. Todos esses filtros e totais são sobre suas tarefas abertas atribuídas, dentro dos limites de paginação e permissões da API.
 
+A identidade dessas consultas segue a precedência `--usuario ID`, `RUNRUNIT_USER_ID` e, na ausência dos dois, o dono do User-Token resolvido por `GET /users?me_first=true&limit=1`. Não há usuário padrão embutido. `--help` e comandos que não dependem de identidade não consultam usuários.
+
 Coleções e consultas de rotina aceitam `--max-pages N --max-items N`. JSON inclui `truncated`; em dependências, esse indicador é verdadeiro se qualquer uma das duas coleções estiver parcial.
 
 ## Descobrir IDs

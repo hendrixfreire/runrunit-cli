@@ -80,7 +80,7 @@ A configuração fica fora do projeto e do ambiente instalado:
 
 Use suas próprias credenciais. O User-Token define em nome de quem a CLI atua. Mantenha esse arquivo local; não envie valores ao GitHub ou em mensagens.
 
-Para uso avançado, a CLI aceita `RUNRUNIT_APP_KEY`, `RUNRUNIT_USER_TOKEN`, `RUNRUNIT_USER_ID` e `RUNRUNIT_UPLOAD_URL` no ambiente. `RUNRUNIT_ENV_FILE` seleciona um arquivo alternativo. A configuração antiga do Hermes continua como fallback para usuários existentes; Hermes não é necessário para instalar ou usar a CLI.
+Para uso avançado, a CLI aceita `RUNRUNIT_APP_KEY`, `RUNRUNIT_USER_TOKEN`, `RUNRUNIT_USER_ID` e `RUNRUNIT_UPLOAD_URL` no ambiente. `RUNRUNIT_ENV_FILE` seleciona um arquivo alternativo. A configuração antiga do Hermes continua como origem alternativa de credenciais para usuários existentes; Hermes não é necessário para instalar ou usar a CLI. Nos comandos de rotina, `--usuario ID` tem precedência sobre `RUNRUNIT_USER_ID`; se nenhum dos dois for informado, a CLI identifica o dono do User-Token com `GET /users?me_first=true&limit=1`. Não há usuário padrão embutido.
 
 Depois de configurar:
 
@@ -186,7 +186,7 @@ rr etapas --quadro 111
 rr criar "Revisar relatório" --quadro 111 --tipo 222 --projeto 333 --dry-run
 ```
 
-Os números acima são exemplos. Use IDs reais e válidos da sua conta. A criação usa a confirmação `CRIAR` no terminal ou `--confirmar CRIAR` em automação.
+Os números acima são exemplos. Use IDs reais e válidos da sua conta. A criação usa a confirmação `CRIAR` no terminal ou `--confirmar CRIAR` em automação. Com `--descricao`, a CLI relê `/tasks/:id/description` e só confirma se o conteúdo coincidir; ausência ou divergência exige reconciliação sem reenviar o POST.
 
 Mais exemplos:
 
@@ -250,7 +250,7 @@ Arquivos principais:
 - `rr_cli.py`: comandos em português.
 - `runrunit_api.py`: cliente HTTP e comandos técnicos.
 - `rr_upload.py`: envio multipart e conferência de anexos por SHA-256.
-- `test_rr_cli.py` e `test_rr_extended.py`: testes com mocks, sem alterar tarefas reais.
+- `test_rr_cli.py`, `test_rr_extended.py` e `test_rr_cli_regressions.py`: testes com mocks, sem alterar tarefas reais.
 
 Execute na raiz do projeto:
 
@@ -269,7 +269,7 @@ Para contribuir, crie uma branch, implemente uma mudança coesa, rode os testes 
 - **Credenciais ausentes / HTTP 401**: execute `rr configurar` ou confira a configuração avançada, sem imprimir seus valores.
 - **HTTP 403**: a conta pode não ter permissão para a operação ou recurso.
 - **HTTP 404**: confira o ID e o acesso ao recurso. A consulta de checklist ausente é tratada como `body: null`.
-- **Tarefas de outro usuário ou lista vazia inesperada**: execute `rr configurar` para identificar sua conta, ou configure `RUNRUNIT_USER_ID` / `--usuario ID` explicitamente.
+- **Tarefas de outro usuário ou lista vazia inesperada**: execute `rr configurar` para identificar sua conta, ou configure `RUNRUNIT_USER_ID` / `--usuario ID` explicitamente. Sem configuração explícita, a CLI consulta o dono do User-Token; não assume um usuário fixo.
 - **HTTP 429**: aguarde o período indicado pela API; novas tentativas imediatas não resolvem o limite.
 - **Upload interrompido**: reconcilie o ID do documento informado antes de reenviar; o registro pode ter sido criado mesmo sem upload completo.
 
