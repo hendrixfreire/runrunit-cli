@@ -1,6 +1,8 @@
 # CLI Runrun.it
 
-Todos os comandos aceitam `--json`. Exemplos de escrita abaixo mostram a preparação; use `--dry-run` para revisar sem alterar, ou execute no terminal e digite o ID para confirmar. Em automação autorizada, acrescente `--confirmar ID`; criar tarefa exige `--confirmar CRIAR`.
+Instalação de um comando para Linux, Windows e macOS em [README.md](README.md). Depois de instalar, `rr configurar` valida suas credenciais e identifica seu usuário. `rr --version` mostra a versão instalada.
+
+Os comandos operacionais da API aceitam `--json`; `configurar` e `--version` são exceções. Exemplos de escrita abaixo mostram a preparação; use `--dry-run` para revisar sem alterar, ou execute no terminal e digite o ID para confirmar. Em automação autorizada, acrescente `--confirmar ID`; criar tarefa exige `--confirmar CRIAR`.
 
 ## Consultas e rotina
 
@@ -99,7 +101,8 @@ Anexo congela os bytes antes da confirmação, mostra nome/tamanho/SHA-256, faz 
 ## Validação e fontes
 
 ```bash
-python3 -m unittest discover -s . -p 'test_rr*.py'
+python -m pip install .
+python -m unittest discover -s . -p 'test*.py'
 ```
 
 Os testes usam mocks para escritas e storage. Leituras reais validam acesso/formatos, mas não provam execução real de cada escrita.

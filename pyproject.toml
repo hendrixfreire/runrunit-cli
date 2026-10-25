@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "runrunit-cli"
+version = "0.2.0"
+description = "CLI em português para gerenciar tarefas do Runrun.it"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["tzdata>=2024.1"]
+
+[project.scripts]
+rr = "rr_entry:main"
+
+[project.urls]
+Homepage = "https://github.com/hendrixfreire/runrunit-cli"
+
+[tool.setuptools]
+py-modules = ["rr_entry", "rr_cli", "rr_upload", "runrunit_api"]

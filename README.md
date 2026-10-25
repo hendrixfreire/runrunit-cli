@@ -9,7 +9,7 @@ rr resumo --por prazo
 rr ver 123456
 ```
 
-A CLI usa a API oficial do Runrun.it. É escrita em Python, executada por um script Bash e não é um programa compilado. Não é um produto oficial do Runrun.it.
+A CLI usa a API oficial do Runrun.it. É escrita em Python e instalada como um pacote com comando de terminal; não é um programa compilado. O comando instalado funciona sem Bash no Windows. Não é um produto oficial do Runrun.it.
 
 ## O que você pode fazer
 
@@ -20,112 +20,71 @@ A CLI usa a API oficial do Runrun.it. É escrita em Python, executada por um scr
 - Iniciar/pausar trabalho, registrar horas manuais e anexar arquivos.
 - Usar `--json` para integrar com scripts e agentes.
 
-## Requisitos
+## Instalação no Linux
 
-- macOS ou Linux com Bash, Git, Python 3.10 ou superior e o comando `realpath` no PATH.
-- Conta Runrun.it com acesso à API e permissões para as operações desejadas.
-- App-Key e User-Token fornecidos pelo Runrun.it.
+Cole no terminal:
 
-A aplicação não precisa de bibliotecas Python externas. Windows nativo não foi validado; em Windows, use um ambiente Linux pelo WSL, observando os mesmos requisitos.
-
-Confira o ambiente:
-
-```bash
-python3 --version
-git --version
-command -v bash
-command -v realpath
+```sh
+curl -fsSL https://raw.githubusercontent.com/hendrixfreire/runrunit-cli/main/install.sh | sh
 ```
 
-Se algum comando não existir, instale-o pelo gerenciador de pacotes do seu sistema antes de continuar. O acesso à API depende das condições da sua conta Runrun.it; consulte a [documentação oficial](https://runrun.it/api/documentation).
+O instalador obtém o `uv` se necessário, baixa um Python 3.12 gerenciado e instala o pacote completo em um ambiente isolado do seu usuário. Não precisa instalar Git ou clonar o repositório. Linux precisa de `sh` e `curl` ou `wget`; use `wget -qO- https://raw.githubusercontent.com/hendrixfreire/runrunit-cli/main/install.sh | sh` se só tiver wget.
 
-## Instalação
+## Instalação no Windows
 
-### 1. Baixe o projeto
+Abra o **PowerShell** e cole:
 
-```bash
-mkdir -p "$HOME/projetos"
-git clone https://github.com/hendrixfreire/runrunit-cli.git "$HOME/projetos/runrunit-cli"
-cd "$HOME/projetos/runrunit-cli"
-./rr --help
+```powershell
+irm https://raw.githubusercontent.com/hendrixfreire/runrunit-cli/main/install.ps1 | iex
 ```
 
-Se o repositório estiver privado, você precisa de permissão e autenticação GitHub para clonar.
+Instalação nativa do Windows: obtém o `uv`, o Python 3.12 gerenciado e o comando `rr.exe`. Não precisa de WSL, Bash, Git nem Python instalado previamente. O script não altera a política de execução global do Windows. Políticas corporativas que bloqueiam downloads ou execução devem ser tratadas com o administrador do ambiente.
 
-### 2. Disponibilize o comando `rr`
+## Instalação no macOS
 
-```bash
-mkdir -p "$HOME/.local/bin"
-ln -s "$HOME/projetos/runrunit-cli/rr" "$HOME/.local/bin/rr"
-export PATH="$HOME/.local/bin:$PATH"
-rr --help
+Cole no Terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/hendrixfreire/runrunit-cli/main/install.sh | sh
 ```
 
-Se já existir um comando/arquivo `~/.local/bin/rr`, confira seu destino antes de substituí-lo. O comando acima não sobrescreve instalações existentes.
+Não precisa de Homebrew, Git ou Python instalado previamente. O instalador usa um Python gerenciado pelo `uv` e mantém o Python do macOS separado.
 
-Para manter o PATH nos próximos terminais, adicione esta linha ao `~/.zshrc` (Zsh) ou ao arquivo de inicialização usado pelo seu Bash, como `~/.bashrc`:
+## O que acontece na instalação
 
-```bash
-export PATH="$HOME/.local/bin:$PATH"
+1. Instala o gerenciador `uv` no seu usuário, se ele não estiver disponível.
+2. Obtém um Python gerenciado, instala a CLI e as dependências, incluindo os dados de fuso horário usados no Windows.
+3. Disponibiliza `rr` no diretório de ferramentas do usuário e prepara o PATH. Pode ser necessário abrir outro terminal para o novo PATH ser reconhecido.
+4. Em um terminal interativo, oferece a configuração das credenciais. A instalação pode ser concluída sem configurar uma conta.
+
+O download da CLI vem deste repositório público; o `uv` vem do instalador oficial da Astral. Os comandos acima executam scripts baixados por HTTPS: você pode inspecionar [install.sh](install.sh) ou [install.ps1](install.ps1) antes de executar.
+
+A instalação não inclui credenciais de ninguém. Você precisa de uma conta Runrun.it com acesso à API e permissões para as operações desejadas. O acesso depende das condições da sua conta; veja a [documentação oficial](https://runrun.it/api/documentation).
+
+Se já houver um comando `rr` de outra instalação no destino, o instalador deve preservar esse arquivo e informar o conflito. A instalação antiga por clone/link continua disponível e não precisa ser substituída para você usar o projeto.
+
+## Configurar sua conta
+
+Se você pulou a configuração inicial, rode:
+
+```text
+rr configurar
 ```
 
-Não mova ou apague a pasta clonada enquanto usar essa instalação: `rr` é um link para o código dela. Também é possível executar `./rr` diretamente nessa pasta.
+O assistente pede App-Key e User-Token sem mostrar seus valores, valida o acesso e identifica seu usuário pela API. Só grava a configuração após a validação. Você não precisa descobrir seu ID manualmente nem editar o código.
 
-## Configuração das credenciais
+A configuração fica fora do projeto e do ambiente instalado:
 
-Use suas próprias credenciais, obtidas nas configurações de integrações/API da sua conta Runrun.it. O User-Token define em nome de quem a CLI atua e quais permissões ela possui.
+- **Linux/macOS:** `~/.config/runrunit-cli/env`.
+- **Windows:** `%APPDATA%\runrunit-cli\env`.
 
-### 1. Crie um arquivo local fora do projeto
+Use suas próprias credenciais. O User-Token define em nome de quem a CLI atua. Mantenha esse arquivo local; não envie valores ao GitHub ou em mensagens.
 
-```bash
-mkdir -p "$HOME/.config/runrunit-cli"
-touch "$HOME/.config/runrunit-cli/env"
-chmod 600 "$HOME/.config/runrunit-cli/env"
-nano "$HOME/.config/runrunit-cli/env"
-```
+Para uso avançado, a CLI aceita `RUNRUNIT_APP_KEY`, `RUNRUNIT_USER_TOKEN`, `RUNRUNIT_USER_ID` e `RUNRUNIT_UPLOAD_URL` no ambiente. `RUNRUNIT_ENV_FILE` seleciona um arquivo alternativo. A configuração antiga do Hermes continua como fallback para usuários existentes; Hermes não é necessário para instalar ou usar a CLI.
 
-Preencha o arquivo com os valores reais:
+Depois de configurar:
 
-```dotenv
-RUNRUNIT_APP_KEY=SUA_APP_KEY
-RUNRUNIT_USER_TOKEN=SEU_USER_TOKEN
-```
-
-Esse arquivo contém segredos: mantenha-o local e não envie seus valores ao GitHub, em screenshots ou mensagens. O formato aceito é `NOME=valor`, uma variável por linha, sem espaços em torno de `=`. Aspas externas simples ou duplas são aceitas; não há expansão de variáveis ou execução de comandos no arquivo.
-
-### 2. Indique o arquivo à CLI
-
-No terminal atual:
-
-```bash
-export RUNRUNIT_ENV_FILE="$HOME/.config/runrunit-cli/env"
-```
-
-Para persistir, adicione essa mesma linha ao arquivo de inicialização do seu shell (`~/.zshrc` ou o equivalente do Bash).
-
-Se `RUNRUNIT_APP_KEY` e `RUNRUNIT_USER_TOKEN` já estiverem definidos no ambiente, o wrapper usa essas variáveis. A configuração antiga do Hermes em `~/.hermes/profiles/profissional/.env` continua como fallback quando `RUNRUNIT_ENV_FILE` não está definido; Hermes não é necessário para instalar ou usar a CLI.
-
-### 3. Descubra seu usuário
-
-```bash
-rr request GET '/users?me_first=true&limit=1'
-```
-
-Localize o `id` do primeiro usuário em `body` e acrescente ao arquivo de configuração:
-
-```dotenv
-RUNRUNIT_USER_ID=seu-id-de-usuario
-```
-
-Esse ID não é a App-Key nem o User-Token. Configure-o para que os filtros de tarefas usem seu usuário: a versão atual mantém `hendrix-freire` como fallback de compatibilidade se nenhum ID for informado. Também é possível escolher explicitamente:
-
-```bash
-rr minhas --usuario seu-id-de-usuario
-```
-
-### 4. Faça a primeira consulta
-
-```bash
+```text
 rr minhas
 rr resumo --por projeto
 ```
@@ -229,32 +188,34 @@ JSON é escrito em stdout; prévias e diagnósticos usam stderr. Escritas exigem
 
 ## Atualizar
 
-Com a pasta de trabalho sem alterações locais pendentes:
+Execute novamente o mesmo comando de instalação do seu sistema para atualizar a instalação gerenciada pelo `uv`, mantendo as credenciais separadas. Veja o resultado informado pelo instalador e confira:
 
-```bash
-cd "$HOME/projetos/runrunit-cli"
-git pull --ff-only
+```text
 rr --help
 ```
 
-Como `rr` aponta para o clone, a próxima execução já usa o código atualizado. Se você editar o código, registre suas alterações em uma branch antes de atualizar; não use comandos de descarte para resolver conflitos sem revisar.
+Se você usa a instalação antiga por clone/link, continue atualizando a pasta com `git pull --ff-only` depois de revisar e guardar suas alterações locais. A instalação por pacote e a instalação de desenvolvimento por link são modalidades diferentes.
 
 ## Desinstalar
 
-Remova o link somente depois de conferir que ele aponta para este projeto:
+Para a instalação gerenciada pelo `uv`:
 
-```bash
-ls -l "$HOME/.local/bin/rr"
-unlink "$HOME/.local/bin/rr"
+```text
+uv tool uninstall runrunit-cli
 ```
 
-Depois, você pode remover a pasta clonada, se não houver alterações que queira guardar. As credenciais em `~/.config/runrunit-cli/env` permanecem separadas; decida se deseja mantê-las e remova as linhas de PATH/configuração do seu shell caso não sejam mais necessárias.
+Isso remove a ferramenta e seu ambiente isolado; suas credenciais permanecem no diretório de configuração. Remova-as separadamente se não quiser mais usá-las. O `uv` e o Python gerenciado podem ser usados por outras ferramentas e não são removidos por esse comando.
+
+Para a instalação antiga por link, confira o destino de `~/.local/bin/rr` antes de remover o link e apagar o clone.
 
 ## Desenvolvimento e testes
 
 Arquivos principais:
 
-- `rr`: ponto de entrada e carregamento da configuração local.
+- `rr_entry.py`: ponto de entrada multiplataforma, configuração e assistente de credenciais.
+- `pyproject.toml`: pacote instalável e dependências.
+- `install.sh` / `install.ps1`: instaladores Linux/macOS e Windows.
+- `rr`: wrapper compatível com a instalação antiga por clone/link.
 - `rr_cli.py`: comandos em português.
 - `runrunit_api.py`: cliente HTTP e comandos técnicos.
 - `rr_upload.py`: envio multipart e conferência de anexos por SHA-256.
@@ -263,7 +224,8 @@ Arquivos principais:
 Execute na raiz do projeto:
 
 ```bash
-python3 -m unittest discover -s . -p 'test_rr*.py'
+python -m pip install .
+python -m unittest discover -s . -p 'test*.py'
 ```
 
 Para contribuir, crie uma branch, implemente uma mudança coesa, rode os testes e abra um pull request. Nunca inclua arquivos de credenciais ou respostas reais com dados privados em fixtures.
@@ -271,17 +233,22 @@ Para contribuir, crie uma branch, implemente uma mudança coesa, rode os testes 
 ## Problemas comuns
 
 - **`rr: command not found`**: confira o link e o PATH; tente `./rr --help` na pasta do projeto.
-- **`python3` ou `realpath` não encontrado**: instale o requisito ausente e abra outro terminal.
-- **Credenciais ausentes / HTTP 401**: confira `RUNRUNIT_ENV_FILE` e as credenciais da sua conta, sem imprimir seus valores.
+- **Falha no download de uv/Python/pacote**: confira conexão, proxy e as restrições do ambiente; a instalação precisa acessar GitHub e os servidores de distribuição do uv/Python.
+- **`python3` ausente na instalação antiga por link**: essa modalidade exige Python disponível no PATH. A instalação por pacote obtém seu próprio Python gerenciado.
+- **Credenciais ausentes / HTTP 401**: execute `rr configurar` ou confira a configuração avançada, sem imprimir seus valores.
 - **HTTP 403**: a conta pode não ter permissão para a operação ou recurso.
 - **HTTP 404**: confira o ID e o acesso ao recurso. A consulta de checklist ausente é tratada como `body: null`.
-- **Tarefas de outro usuário ou lista vazia inesperada**: configure `RUNRUNIT_USER_ID` ou use `--usuario ID`.
+- **Tarefas de outro usuário ou lista vazia inesperada**: execute `rr configurar` para identificar sua conta, ou configure `RUNRUNIT_USER_ID` / `--usuario ID` explicitamente.
 - **HTTP 429**: aguarde o período indicado pela API; novas tentativas imediatas não resolvem o limite.
 - **Upload interrompido**: reconcilie o ID do documento informado antes de reenviar; o registro pode ter sido criado mesmo sem upload completo.
 
-## Limitações
+## Limitações e validação
 
-A instalação atual é por clone e link, sem pacote PyPI ou executáveis independentes. O ambiente validado é macOS; testes locais simulam escritas e storage, e não comprovam todas as operações ao vivo ou a compatibilidade com cada sistema. O destino padrão de upload segue o exemplo oficial atual e pode exigir atualização se o provedor mudar; consulte `COMANDOS.md` para configuração.
+Os instaladores instalam um pacote Python com runtime gerenciado; não geram um binário independente. Não há pacote publicado no PyPI: a instalação baixa o código diretamente do GitHub.
+
+Testes locais simulam escritas e storage, sem alterar tarefas reais. A automação deste repositório testa pacote, comandos e instaladores em Linux, macOS e Windows; consulte o [resultado dos testes](https://github.com/hendrixfreire/runrunit-cli/actions) para o estado atual. Políticas de rede e particularidades de cada PC podem afetar a instalação.
+
+O destino padrão de upload segue o exemplo oficial e pode exigir atualização se o provedor mudar; consulte `COMANDOS.md` para configuração.
 
 ## Referências
 
