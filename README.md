@@ -89,6 +89,37 @@ rr minhas
 rr resumo --por projeto
 ```
 
+## Instalar a skill para agentes
+
+Além da CLI, este repositório distribui a skill [runrunit-api](skills/runrunit-api/SKILL.md). Ela ensina o agente a consultar e alterar tarefas com a API, resolver IDs, respeitar paginação, preparar mudanças e reconciliar falhas sem duplicar operações. Inclui referências de endpoints, comentários, checklists, horas, anexos e webhooks.
+
+**Instale primeiro a CLI pela seção do seu sistema e configure sua conta com `rr configurar`.** A skill contém instruções e referências: não instala o programa, não fornece credenciais e não autoriza o agente a alterar tarefas por conta própria.
+
+### Pelo Codex
+
+Peça ao Codex:
+
+```text
+Use a skill-installer para instalar a skill deste endereço:
+https://github.com/hendrixfreire/runrunit-cli/tree/main/skills/runrunit-api
+```
+
+O instalador do Codex usa `$CODEX_HOME/skills` (por padrão `~/.codex/skills`; no Windows, a pasta `.codex/skills` dentro da pasta do usuário). Se já houver uma skill com esse nome, revise a versão existente antes de substituir. Abra uma nova sessão do agente para recarregar as skills.
+
+### Instalação manual em outros agentes
+
+1. [Baixe o ZIP do repositório](https://github.com/hendrixfreire/runrunit-cli/archive/refs/heads/main.zip) e extraia.
+2. Copie a pasta inteira `skills/runrunit-api`, incluindo `SKILL.md` e `references/`, para o diretório de skills reconhecido pelo seu agente. No [Claude Code](https://code.claude.com/docs/en/skills), use `~/.claude/skills/runrunit-api`; no Windows, `.claude/skills/runrunit-api` dentro da pasta do usuário. Para agentes que usam `~/.agents/skills`, use `~/.agents/skills/runrunit-api`. Consulte a configuração do seu agente para outros destinos.
+3. Reabra a sessão e confirme que `runrunit-api` aparece nas skills. O processo do agente precisa conseguir executar `rr --help` pelo PATH; após a primeira instalação da CLI, pode ser necessário reiniciar o aplicativo do agente.
+
+Exemplo de pedido ao agente:
+
+```text
+Use a skill runrunit-api para listar minhas tarefas abertas e resumir por prazo.
+```
+
+Para atualizar a skill, instale a versão mais recente da pasta deste repositório após revisar diferenças locais. Reinstalar a CLI não atualiza automaticamente a skill. Não copie o arquivo de credenciais para a pasta da skill nem para o repositório.
+
 ## Uso diário
 
 ```bash
