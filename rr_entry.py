@@ -14,7 +14,9 @@ KEYS = ('RUNRUNIT_APP_KEY', 'RUNRUNIT_USER_TOKEN', 'RUNRUNIT_USER_ID', 'RUNRUNIT
 
 def default_config_path():
     if os.name == 'nt':
-        return Path(os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')) / 'runrunit-cli' / 'env'
+        appdata = os.environ.get('APPDATA')
+        base = Path(appdata) if appdata else Path.home() / 'AppData' / 'Roaming'
+        return base / 'runrunit-cli' / 'env'
     return Path.home() / '.config' / 'runrunit-cli' / 'env'
 
 
