@@ -151,6 +151,20 @@ rr abrir 123456
 
 `buscar` procura somente no título das suas tarefas abertas atribuídas, sem distinguir maiúsculas; não é uma busca global. `hoje` e `atrasadas` consideram o dia do prazo em `America/Sao_Paulo`, e não o horário vencido dentro do dia atual. As consultas continuam sujeitas às permissões do usuário na API.
 
+### Aparência da saída
+
+No terminal, as listas aparecem em tabela com cabeçalho, e `rr ver` mostra a tarefa num painel. Prazos vencidos ficam em vermelho e os de hoje em amarelo. Tarefas urgentes têm a marca ⚑, e as que estão em andamento têm ▶. Essa saída usa a biblioteca [Rich](https://github.com/Textualize/rich), que o instalador já inclui.
+
+Quando a saída vai para um pipe, um arquivo ou um terminal sem Rich, a CLI usa texto simples em colunas alinhadas, sem cores. Para escolher o modo, defina `RR_SAIDA`:
+
+```bash
+RR_SAIDA=simples rr minhas   # texto alinhado, sem cores
+RR_SAIDA=rica rr minhas      # tabelas do Rich mesmo fora do terminal
+NO_COLOR=1 rr minhas         # tabelas sem cores
+```
+
+Para scripts e agentes, use `--json`: esse formato não muda.
+
 ## Alterar tarefas com prévia e confirmação
 
 Para revisar uma operação sem executá-la, use `--dry-run`:
@@ -225,7 +239,7 @@ Execute novamente o mesmo comando de instalação do seu sistema para atualizar 
 rr --help
 ```
 
-Se você usa a instalação antiga por clone/link, continue atualizando a pasta com `git pull --ff-only` depois de revisar e guardar suas alterações locais. A instalação por pacote e a instalação de desenvolvimento por link são modalidades diferentes.
+Se você usa a instalação antiga por clone/link, continue atualizando a pasta com `git pull --ff-only` depois de revisar e guardar suas alterações locais. Essa instalação roda com o `python3` do sistema; sem a biblioteca `rich` nele, a CLI funciona e mostra a saída em texto alinhado, sem tabelas nem cores. A instalação por pacote e a instalação de desenvolvimento por link são modalidades diferentes.
 
 ## Desinstalar
 
@@ -248,9 +262,10 @@ Arquivos principais:
 - `install.sh` / `install.ps1`: instaladores Linux/macOS e Windows.
 - `rr`: wrapper compatível com a instalação antiga por clone/link.
 - `rr_cli.py`: comandos em português.
+- `rr_format.py`: saída humana (tabelas e painéis com Rich, texto alinhado sem ele).
 - `runrunit_api.py`: cliente HTTP e comandos técnicos.
 - `rr_upload.py`: envio multipart e conferência de anexos por SHA-256.
-- `test_rr_cli.py`, `test_rr_extended.py` e `test_rr_cli_regressions.py`: testes com mocks, sem alterar tarefas reais.
+- `test_rr_cli.py`, `test_rr_extended.py`, `test_rr_cli_regressions.py` e `test_rr_format.py`: testes com mocks, sem alterar tarefas reais.
 
 Execute na raiz do projeto:
 

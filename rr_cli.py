@@ -4,7 +4,6 @@ import argparse
 from collections import Counter
 from datetime import date, datetime
 import html
-import json
 import os
 from pathlib import Path
 import re
@@ -13,6 +12,7 @@ import unicodedata
 import webbrowser
 from zoneinfo import ZoneInfo
 import runrunit_api as api
+import rr_format
 
 TZ = ZoneInfo('America/Sao_Paulo')
 LISTS = {'minhas', 'buscar', 'hoje', 'atrasadas', 'trabalhando', 'resumo'}
@@ -44,42 +44,14 @@ def literal(value):
 
 
 def show_task(t, stream=None):
-    stream = stream or sys.stdout
-    for label, key in [('Tarefa', 'id'), ('Título', 'title'), ('Cliente', 'client_name'),
-                       ('Projeto', 'project_name'), ('Quadro', 'board_id'), ('Etapa', 'board_stage_name'),
-                       ('Prazo', 'desired_date'), ('Urgente', 'is_urgent'), ('Fechada', 'is_closed'), ('Tags', 'tags_data')]:
-        print(f'{label}: {plain(t.get(key))}', file=stream)
-    for a in t.get('assignments') or []:
-        print(f"Responsável: {plain(a.get('assignee_id'))} | fechado={a.get('is_closed')} | trabalhando={a.get('is_working_on')}", file=stream)
-    print(f"https://runrun.it/pt-BR/tasks/{t.get('id')}", file=stream)
+    rr_format.render_task(t, stream or sys.stdout)
 
 
 def output(result, args):
     if args.json:
         api.emit(result)
         return
-    body = result['body']
-    if result.get('preview'):
-        print('Prévia; nenhuma alteração executada.')
-    if isinstance(body, list):
-        for item in body:
-            if not isinstance(item, dict):
-                print(plain(item)); continue
-            keys = ('id', 'title', 'project_name', 'board_stage_name', 'desired_date') if 'assignments' in item or 'board_stage_name' in item else ('id', 'name', 'title', 'description', 'checked', 'user_name', 'text', 'file_name', 'file_size')
-            print(' | '.join(plain(item.get(k)).replace('\n', ' ') for k in keys if item.get(k) is not None))
-        print(f'{len(body)} resultado(s).')
-    elif isinstance(body, dict) and ('assignments' in body or 'board_id' in body) and not result.get('preview'):
-        show_task(body)
-    elif body is None and args.command == 'checklist':
-        print('Esta tarefa não possui checklist.')
-    else:
-        print(plain(json.dumps(body, ensure_ascii=False, indent=2)) if isinstance(body, dict) else plain(body))
-    if result.get('description') is not None:
-        print('\nDescrição:\n' + plain(result['description']))
-    if result.get('verification'):
-        print('Verificação: ' + plain(result['verification']))
-    if result.get('truncated'):
-        print('Resultado parcial: limite de paginação atingido; aumente --max-pages/--max-items.', file=sys.stderr)
+    rr_format.render(result, args.command)
 
 
 def iso_date(value):
@@ -216,8 +188,7 @@ def resolve_user(usuario=None):
 
 def confirm(args, task, plan):
     if task: show_task(task, sys.stderr)
-    print('Operação: ' + args.command, file=sys.stderr)
-    print(literal(json.dumps(plan, ensure_ascii=False, indent=2)), file=sys.stderr)
+    rr_format.render_plan(args.command, plan, sys.stderr)
     if args.dry_run: return False
     expected = getattr(args, 'id', 'CRIAR')
     if args.confirmar is not None:

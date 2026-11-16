@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "CLI em português para gerenciar tarefas do Runrun.it"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["tzdata>=2024.1"]
+dependencies = ["rich>=13.7", "tzdata>=2024.1"]
 
 [project.scripts]
 rr = "rr_entry:main"
@@ -17,4 +17,4 @@ rr = "rr_entry:main"
 Homepage = "https://github.com/hendrixfreire/runrunit-cli"
 
 [tool.setuptools]
-py-modules = ["rr_entry", "rr_cli", "rr_upload", "runrunit_api"]
+py-modules = ["rr_entry", "rr_cli", "rr_upload", "runrunit_api", "rr_format"]
